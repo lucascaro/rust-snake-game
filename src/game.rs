@@ -1,21 +1,11 @@
-use piston_window::types::Color;
 use piston_window::*;
-
 use rand::Rng;
 
+use crate::config::Config;
 use crate::draw::{draw_block, draw_rectangle};
 use crate::snake::{Block, Direction, Snake};
 
-const FOOD_COLOR: Color = [0.35, 0.74, 0.51, 1.0];
-const BORDER_COLOR: Color = [0.06, 0.04, 0.04, 1.0];
-const GAMEOVER_COLOR: Color = [0.91, 0.31, 0.22, 0.5];
-
-// Frames per second
-const MOVING_PERIOD: f64 = 0.2;
-const RESTART_TIME: f64 = 1.0;
-const TURBO_MULTIPLIER: f64 = 4.0;
-
-pub struct Game {
+pub struct Game<'c> {
   snake: Snake,
 
   food: Option<Block>,
@@ -25,24 +15,33 @@ pub struct Game {
 
   game_over: bool,
   waiting_time: f64,
+  can_restart: bool,
   turbo: bool,
+  score: u32,
+  config: &'c Config,
 }
 
-impl Game {
-  pub fn new(width: i32, height: i32) -> Game {
+impl<'c> Game<'c> {
+  pub fn new(config: &'c Config) -> Game {
     Game {
       snake: Snake::new(2, 2),
       food: Some(Block { x: 6, y: 4 }),
-      width,
-      height,
+      width: config.game.width,
+      height: config.game.height,
       game_over: false,
       waiting_time: 0.0,
+      can_restart: false,
       turbo: false,
+      score: 0,
+      config,
     }
   }
 
   pub fn key_pressed(&mut self, key: Key) {
     if self.game_over {
+      if self.can_restart {
+        self.restart();
+      }
       return;
     }
 
@@ -79,28 +78,45 @@ impl Game {
     const LEFT: i32 = 0;
     let width: i32 = self.width;
     let height: i32 = self.height;
-    draw_rectangle(BORDER_COLOR, TOP, LEFT, width, 1, con, g);
-    draw_rectangle(BORDER_COLOR, TOP, height - 1, width, 1, con, g);
-    draw_rectangle(BORDER_COLOR, TOP, LEFT, 1, height, con, g);
-    draw_rectangle(BORDER_COLOR, width - 1, LEFT, 1, height, con, g);
+    draw_rectangle(self.config.colors.border, TOP, LEFT, width, 1, con, g);
+    draw_rectangle(self.config.colors.border, TOP, height - 1, width, 1, con, g);
+    draw_rectangle(self.config.colors.border, TOP, LEFT, 1, height, con, g);
+    draw_rectangle(
+      self.config.colors.border,
+      width - 1,
+      LEFT,
+      1,
+      height,
+      con,
+      g,
+    );
 
     if let Some(ref food) = self.food {
-      draw_block(FOOD_COLOR, food.x, food.y, con, g);
+      draw_block(self.config.colors.food, food.x, food.y, con, g);
     };
     if self.game_over {
-      draw_rectangle(GAMEOVER_COLOR, 0, 0, self.width, self.height, con, g);
+      draw_rectangle(
+        self.config.colors.gameover,
+        0,
+        0,
+        self.width,
+        self.height,
+        con,
+        g,
+      );
     }
   }
 
   pub fn update(&mut self, delta_time: f64) {
     self.waiting_time += if self.turbo {
-      delta_time * TURBO_MULTIPLIER
+      delta_time * self.config.game.turbo_multiplier
     } else {
       delta_time
     };
     if self.game_over {
-      if self.waiting_time > RESTART_TIME {
-        self.restart();
+      if self.waiting_time > self.config.game.restart_time {
+        // self.restart();
+        self.can_restart = true;
       }
       return;
     }
@@ -109,16 +125,19 @@ impl Game {
       self.add_food();
     }
 
-    if self.waiting_time > MOVING_PERIOD {
+    if self.waiting_time > self.config.game.moving_period {
       self.update_snake(None);
     }
   }
-
+  pub fn get_score(&self) -> u32 {
+    self.score
+  }
   fn check_eating(&mut self) {
     let head = self.snake.head_position();
     if let Some(ref food) = self.food {
       if food.x == head.x && food.y == head.y {
         self.food = None;
+        self.score += 1;
         self.snake.restore_tail();
       }
     }
@@ -130,7 +149,9 @@ impl Game {
     self.waiting_time = 0.0;
     self.food = Some(Block { x: 6, y: 4 });
     self.game_over = false;
+    self.can_restart = false;
     self.turbo = false;
+    self.score = 0;
   }
 
   fn check_snake_alive(&self, dir: Option<Direction>) -> bool {
@@ -139,7 +160,7 @@ impl Game {
       return false;
     }
 
-    next.x > 0 && next.y > 0 && next.x < self.width && next.y < self.height
+    next.x > 0 && next.y > 0 && next.x < self.width - 1 && next.y < self.height - 1
   }
 
   fn add_food(&mut self) {
