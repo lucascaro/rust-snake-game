@@ -2,7 +2,7 @@ use piston_window::types::Color;
 use piston_window::{Context, G2d};
 use std::collections::LinkedList;
 
-use crate::draw::draw_block;
+use crate::draw::Draw;
 
 const SNAKE_COLOR: Color = [0.21, 0.15, 0.65, 1.0];
 
@@ -56,10 +56,12 @@ pub struct Snake {
   direction: Direction,
   body: LinkedList<Block>,
   tail: Option<Block>,
+  draw: Draw,
 }
 
 impl Snake {
   pub fn new(x: i32, y: i32) -> Snake {
+    let draw = Draw::new();
     let mut body: LinkedList<Block> = LinkedList::new();
     body.push_back(Block { x: x + 2, y });
     body.push_back(Block { x: x + 1, y });
@@ -68,12 +70,13 @@ impl Snake {
       direction: Direction::Right,
       body,
       tail: None,
+      draw,
     }
   }
 
   pub fn draw(&self, con: &Context, g: &mut G2d) {
     for block in &self.body {
-      draw_block(SNAKE_COLOR, block.x, block.y, con, g)
+      self.draw.block(SNAKE_COLOR, block.x, block.y, con, g)
     }
   }
 

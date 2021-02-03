@@ -1,7 +1,28 @@
 use piston_window::types::Color;
 use serde_derive::Deserialize;
+use std::sync::{Arc, RwLock};
 
-#[derive(Deserialize)]
+// Allow accessing config from multiple files.
+thread_local! {
+    static CURRENT_CONFIG: RwLock<Arc<Config>> = RwLock::new(Default::default());
+}
+impl Config {
+  pub fn current() -> Arc<Config> {
+    CURRENT_CONFIG.with(|c| c.read().unwrap().clone())
+  }
+  pub fn make_current(self) {
+    CURRENT_CONFIG.with(|c| *c.write().unwrap() = Arc::new(self))
+  }
+}
+
+// fn main() {
+//   Config { debug_mode: true }.make_current();
+//   if Config::current().debug_mode {
+//     // do something
+//   }
+// }
+
+#[derive(Deserialize, Default)]
 pub struct Config {
   pub version: u8,
   pub game: GameConfig,
@@ -9,7 +30,7 @@ pub struct Config {
   pub scores: ScoresConfig,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct GameConfig {
   pub width: i32,
   pub height: i32,
@@ -19,7 +40,7 @@ pub struct GameConfig {
   pub turbo_multiplier: f64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct ColorConfig {
   pub board: Color,
   pub border: Color,
@@ -28,7 +49,7 @@ pub struct ColorConfig {
   pub snake: Color,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct ScoresConfig {
   pub last: u32,
   pub top: Vec<u32>,

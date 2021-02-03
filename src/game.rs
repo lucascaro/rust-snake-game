@@ -1,11 +1,12 @@
 use piston_window::*;
 use rand::Rng;
+use std::sync::Arc;
 
 use crate::config::Config;
-use crate::draw::{draw_block, draw_rectangle};
+use crate::draw::Draw;
 use crate::snake::{Block, Direction, Snake};
 
-pub struct Game<'c> {
+pub struct Game {
   snake: Snake,
 
   food: Option<Block>,
@@ -18,11 +19,14 @@ pub struct Game<'c> {
   can_restart: bool,
   turbo: bool,
   score: u32,
-  config: &'c Config,
+  config: Arc<Config>,
+  draw: Draw,
 }
 
-impl<'c> Game<'c> {
-  pub fn new(config: &'c Config) -> Game {
+impl Game {
+  pub fn new() -> Game {
+    let config = Config::current();
+    let draw = Draw::new();
     Game {
       snake: Snake::new(2, 2),
       food: Some(Block { x: 6, y: 4 }),
@@ -34,6 +38,7 @@ impl<'c> Game<'c> {
       turbo: false,
       score: 0,
       config,
+      draw,
     }
   }
 
@@ -78,10 +83,16 @@ impl<'c> Game<'c> {
     const LEFT: i32 = 0;
     let width: i32 = self.width;
     let height: i32 = self.height;
-    draw_rectangle(self.config.colors.border, TOP, LEFT, width, 1, con, g);
-    draw_rectangle(self.config.colors.border, TOP, height - 1, width, 1, con, g);
-    draw_rectangle(self.config.colors.border, TOP, LEFT, 1, height, con, g);
-    draw_rectangle(
+    self
+      .draw
+      .rectangle(self.config.colors.border, TOP, LEFT, width, 1, con, g);
+    self
+      .draw
+      .rectangle(self.config.colors.border, TOP, height - 1, width, 1, con, g);
+    self
+      .draw
+      .rectangle(self.config.colors.border, TOP, LEFT, 1, height, con, g);
+    self.draw.rectangle(
       self.config.colors.border,
       width - 1,
       LEFT,
@@ -92,10 +103,12 @@ impl<'c> Game<'c> {
     );
 
     if let Some(ref food) = self.food {
-      draw_block(self.config.colors.food, food.x, food.y, con, g);
+      self
+        .draw
+        .block(self.config.colors.food, food.x, food.y, con, g);
     };
     if self.game_over {
-      draw_rectangle(
+      self.draw.rectangle(
         self.config.colors.gameover,
         0,
         0,

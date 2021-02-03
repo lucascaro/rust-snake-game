@@ -1,49 +1,68 @@
 use piston_window::types::Color;
 use piston_window::{rectangle, Context, G2d};
 
-pub const BLOCK_SIZE: f64 = 25.0;
+use crate::config::Config;
 
-pub fn to_coord(game_coord: i32) -> f64 {
-  (game_coord as f64) * BLOCK_SIZE
+pub struct Draw {
+  block_size: f64,
 }
 
-pub fn to_coord_u32(game_coord: i32) -> u32 {
-  to_coord(game_coord) as u32
-}
+impl Draw {
+  pub fn new() -> Draw {
+    let config = Config::current();
+    Draw {
+      block_size: config.game.block_size,
+    }
+  }
 
-pub fn draw_block(color: Color, x: i32, y: i32, con: &Context, g: &mut G2d) {
-  let gui_x = to_coord(x);
-  let gui_y = to_coord(y);
+  pub fn to_coord(&self, game_coord: i32) -> f64 {
+    (game_coord as f64) * self.block_size
+  }
 
-  rectangle(
-    color,
-    [gui_x + 1.0, gui_y + 1.0, BLOCK_SIZE - 2.0, BLOCK_SIZE - 2.0],
-    con.transform,
-    g,
-  )
-}
+  pub fn to_coord_u32(&self, game_coord: i32) -> u32 {
+    self.to_coord(game_coord) as u32
+  }
 
-pub fn draw_rectangle(
-  color: Color,
-  x: i32,
-  y: i32,
-  width: i32,
-  height: i32,
-  con: &Context,
-  g: &mut G2d,
-) {
-  let gui_x = to_coord(x);
-  let gui_y = to_coord(y);
+  pub fn block(&self, color: Color, x: i32, y: i32, con: &Context, g: &mut G2d) {
+    let gui_x = self.to_coord(x);
+    let gui_y = self.to_coord(y);
 
-  rectangle(
-    color,
-    [
-      gui_x,
-      gui_y,
-      BLOCK_SIZE * (width as f64),
-      BLOCK_SIZE * (height as f64),
-    ],
-    con.transform,
-    g,
-  )
+    rectangle(
+      color,
+      [
+        gui_x + 1.0,
+        gui_y + 1.0,
+        self.block_size - 2.0,
+        self.block_size - 2.0,
+      ],
+      con.transform,
+      g,
+    )
+  }
+
+  pub fn rectangle(
+    &self,
+    color: Color,
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+    con: &Context,
+    g: &mut G2d,
+  ) {
+    let gui_x = self.to_coord(x);
+    let gui_y = self.to_coord(y);
+
+    rectangle(
+      color,
+      [
+        gui_x,
+        gui_y,
+        self.block_size * (width as f64),
+        self.block_size * (height as f64),
+      ],
+      con.transform,
+      g,
+    )
+  }
 }

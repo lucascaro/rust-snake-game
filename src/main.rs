@@ -11,26 +11,29 @@ mod score;
 mod snake;
 mod text_renderer;
 
-use piston_window::types::Color;
 use piston_window::*;
 
 use crate::config::Config;
-use crate::draw::{to_coord_u32, BLOCK_SIZE};
+use crate::draw::Draw;
 use crate::game::Game;
 
 fn main() {
-    let config = Config::from("Game.toml");
+    Config::from("Game.toml").make_current();
+    let config = Config::current();
+    let draw = Draw::new();
     let width = config.game.width;
     let height = config.game.height;
 
-    let mut window: PistonWindow =
-        WindowSettings::new("Snake", [to_coord_u32(width), to_coord_u32(height)])
-            .exit_on_esc(true)
-            .build()
-            .unwrap();
+    let mut window: PistonWindow = WindowSettings::new(
+        "Snake",
+        [draw.to_coord_u32(width), draw.to_coord_u32(height)],
+    )
+    .exit_on_esc(true)
+    .build()
+    .unwrap();
 
     let mut text_renderer = text_renderer::Renderer::new(&mut window);
-    let mut game = Game::new(&config);
+    let mut game = Game::new();
     let header_props = text_renderer::TextProps {
         position: (50.0, 18.0),
         color: [0.0, 1.0, 1.0, 1.0],
@@ -38,14 +41,14 @@ fn main() {
     };
     let footer_props = text_renderer::TextProps {
         position: (
-            width as f64 * BLOCK_SIZE - 180.0,
-            height as f64 * BLOCK_SIZE - 6.0,
+            width as f64 * config.game.block_size - 180.0,
+            height as f64 * config.game.block_size - 6.0,
         ),
         color: [0.41, 0.25, 0.85, 1.0],
         size: 8,
     };
     let score_props = text_renderer::TextProps {
-        position: (10.0, height as f64 * BLOCK_SIZE - 6.0),
+        position: (10.0, height as f64 * config.game.block_size - 6.0),
         color: [0.41, 0.25, 0.85, 1.0],
         size: 8,
     };
